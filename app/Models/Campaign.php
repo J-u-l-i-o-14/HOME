@@ -11,7 +11,7 @@ class Campaign extends Model
     use HasFactory;
 
     protected $fillable = [
-        'center_id', 'name', 'description', 'location', 'date', 'end_date'
+        'center_id', 'name', 'description', 'location', 'date', 'end_date', 'status'
     ];
 
     protected $casts = [
@@ -50,11 +50,21 @@ class Campaign extends Model
         return $query->where('center_id', $centerId);
     }
 
-    // Accessors
-    public function getIsActiveAttribute()
-    {
-        $now = Carbon::now();
-        return $this->date <= $now && (!$this->end_date || $this->end_date >= $now);
+    // Statut publication
+    public function publish() {
+        $this->update(['status' => 'published']);
+    }
+    public function archive() {
+        $this->update(['status' => 'archived']);
+    }
+    public function isPublished() {
+        return $this->status === 'published';
+    }
+    public function isArchived() {
+        return $this->status === 'archived';
+    }
+    public function isDraft() {
+        return $this->status === 'draft';
     }
 
     public function getIsUpcomingAttribute()

@@ -19,14 +19,30 @@ class AppointmentController extends Controller
         $user = auth()->user();
         
         if ($user->is_donor) {
-            $appointments = $user->appointments()->with('campaign')->latest()->paginate(10);
+            $appointmentsQuery = $user->appointments()->with('campaign')->latest();
         } else if (in_array($user->role, ['admin', 'manager'])) {
-            $appointments = Appointment::with(['donor', 'campaign'])
+            $appointmentsQuery = Appointment::with(['donor', 'campaign'])
                 ->where('center_id', $user->center_id)
-                ->latest()->paginate(10);
+                ->latest();
         } else {
-            $appointments = Appointment::with(['donor', 'campaign'])->latest()->paginate(10);
+            $appointmentsQuery = Appointment::with(['donor', 'campaign'])->latest();
         }
+
+        // Filtres dynamiques (exemple)
+        if ($dateFrom = request('date_from')) {
+            $appointmentsQuery->whereDate('scheduled_at', '>=', $dateFrom);
+        }
+        if ($dateTo = request('date_to')) {
+            $appointmentsQuery->whereDate('scheduled_at', '<=', $dateTo);
+        }
+        if ($status = request('status')) {
+            $appointmentsQuery->where('status', $status);
+        }
+        if ($type = request('type')) {
+            $appointmentsQuery->where('type', $type);
+        }
+
+        $appointments = $appointmentsQuery->paginate(10);
 
         return view('appointments.index', compact('appointments'));
     }
@@ -65,6 +81,18 @@ class AppointmentController extends Controller
             \Log::error('Erreur envoi email: ' . $e->getMessage());
         }
 
+        // Notifier les managers du centre
+        $managers = \App\Models\User::where('role', 'manager')
+            ->where('center_id', $appointment->center_id)
+            ->get();
+        foreach ($managers as $manager) {
+            \App\Models\Notification::create([
+                'user_id' => $manager->id,
+                'type' => 'appointment',
+                'message' => 'Nouveau rendez-vous pris par ' . $user->name . ' pour le ' . $appointment->appointment_date . '.',
+                'read' => false,
+            ]);
+        }
         return redirect()->route('appointments.index')
             ->with('success', 'Rendez-vous créé avec succès. Un email de confirmation vous a été envoyé.');
     }
@@ -107,14 +135,24 @@ class AppointmentController extends Controller
             ->with('success', 'Rendez-vous mis à jour avec succès.');
     }
 
-    public function destroy(Appointment $appointment)
+    public function destroy(Request $request, Appointment $appointment)
     {
         $this->authorize('delete', $appointment);
         
+        $reason = $request->input('cancel_reason');
         $appointment->update(['status' => 'annule']);
 
-        return redirect()->route('appointments.index')
-            ->with('success', 'Rendez-vous annulé avec succès.');
+        // Envoi de l'email d'annulation au donneur
+        if ($appointment->donor && $appointment->donor->email) {
+            \Mail::to($appointment->donor->email)
+                ->send(new \App\Mail\AppointmentCancelled($appointment, $reason));
+        }
+
+        if(auth()->user() && in_array(auth()->user()->role, ['manager','admin','donor','donneur'])){
+            return redirect()->route('appointments.index')->with('success', "Rendez-vous annulé avec succès. Un email d'annulation a été envoyé au donneur.");
+        } else {
+            return redirect('/')->with('success', "Rendez-vous annulé avec succès. Un email d'annulation a été envoyé au donneur.");
+        }
     }
 
     public function confirm(Appointment $appointment)
@@ -126,8 +164,14 @@ class AppointmentController extends Controller
             'confirmed_at' => now(),
         ]);
 
+        // Envoi de l'email de confirmation au donneur
+        if ($appointment->donor && $appointment->donor->email) {
+            \Mail::to($appointment->donor->email)
+                ->send(new \App\Mail\AppointmentConfirmation($appointment));
+        }
+
         return redirect()->back()
-            ->with('success', 'Rendez-vous confirmé avec succès.');
+            ->with('success', 'Rendez-vous confirmé avec succès. Un email de confirmation a été envoyé au donneur.');
     }
 
     // Formulaire public de prise de rendez-vous
@@ -144,6 +188,7 @@ class AppointmentController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email',
             'campaign_id' => 'required|exists:campaigns,id',
+            'appointment_date' => 'required|date|after:now',
         ]);
 
         // Création ou récupération de l'utilisateur
@@ -155,7 +200,7 @@ class AppointmentController extends Controller
         // Création du rendez-vous
         $appointment = Appointment::create([
             'donor_id' => $user->id,
-            'appointment_date' => now()->addDays(1), // À adapter selon le formulaire
+            'appointment_date' => $validated['appointment_date'],
             'type' => 'campagne',
             'campaign_id' => $validated['campaign_id'],
             'status' => 'planifie',

@@ -17,7 +17,11 @@
                     </x-nav-link>
 
                     @if(auth()->user()->role === 'donneur')
-                        <x-nav-link :href="route('appointments.index')" :active="request()->routeIs('appointments.*')">
+                        @if(auth()->check() && in_array(auth()->user()->role, ['manager','admin','donor','donneur']))
+    @if(auth()->check() && in_array(auth()->user()->role, ['manager','admin','donor','donneur']))
+<x-nav-link :href="route('appointments.index')" :active="request()->routeIs('appointments.*')">
+@endif
+@endif
                             {{ __('Mes Rendez-vous') }}
                         </x-nav-link>
                         <x-nav-link :href="route('campaigns.public')" :active="request()->routeIs('campaigns.public')">

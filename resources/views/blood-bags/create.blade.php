@@ -21,7 +21,7 @@
                 <select name="donor_id" id="donor_id" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm donor-select">
                     <option value="">Aucun</option>
                     @foreach($donors as $donor)
-                        <option value="{{ $donor->id }}">{{ $donor->full_name }} ({{ $donor->email }})</option>
+                        <option value="{{ $donor->id }}">{{ $donor->full_name ?? ($donor->name ?? 'Donneur inconnu') }} ({{ $donor->email ?? '-' }})</option>
                     @endforeach
                 </select>
                 <div class="mt-2 text-xs text-gray-500">Si le donneur n'est pas dans la liste, saisissez son nom&nbsp;:</div>
@@ -35,23 +35,27 @@
                 <label for="collected_at" class="block text-sm font-medium text-gray-700">Date de collecte</label>
                 <input type="date" name="collected_at" id="collected_at" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
             </div>
-            @if(auth()->user()->is_admin || auth()->user()->is_manager)
-                <input type="hidden" name="center_id" value="{{ auth()->user()->center_id }}">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Centre</label>
-                    <div class="mt-1">{{ auth()->user()->center->name }}</div>
-                </div>
-            @else
-                <div>
-                    <label for="center_id" class="block text-sm font-medium text-gray-700">Centre</label>
-                    <select name="center_id" id="center_id" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
-                        <option value="">Sélectionner</option>
-                        @foreach($centers as $center)
-                            <option value="{{ $center->id }}">{{ $center->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-            @endif
+            @php
+    $user = auth()->user();
+@endphp
+@if(($user->is_admin || $user->is_manager) && $user->center_id)
+    <input type="hidden" name="center_id" value="{{ $user->center_id }}">
+    <div>
+        <label class="block text-sm font-medium text-gray-700">Centre</label>
+        <div class="mt-1">{{ optional($user->center)->name ?? '-' }}</div>
+    </div>
+@else
+    <div>
+        <label for="center_id" class="block text-sm font-medium text-gray-700">Centre</label>
+        <select name="center_id" id="center_id" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required onchange="this.form.submit()">
+            <option value="" disabled {{ old('center_id', request('center_id')) ? '' : 'selected' }}>Sélectionner</option>
+            @foreach($centers as $center)
+                <option value="{{ $center->id }}" {{ old('center_id', request('center_id')) == $center->id ? 'selected' : '' }}>{{ $center->name }}</option>
+            @endforeach
+        </select>
+        <noscript><button type="submit">Valider le centre</button></noscript>
+    </div>
+@endif
             <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg">Créer</button>
         </form>
     </div>

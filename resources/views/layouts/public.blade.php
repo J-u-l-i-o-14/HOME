@@ -42,7 +42,7 @@
                 </div>
 
                 <div class="flex items-center space-x-4">
-                    <a href="{{ route('appointment.public') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200">
+                    <a href="{{ route('appointment.public.form') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200">
                         <i class="fas fa-calendar-plus mr-1"></i>
                         Prendre RDV
                     </a>

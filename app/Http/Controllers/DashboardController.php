@@ -21,7 +21,7 @@ class DashboardController extends Controller
         
         // Vérifier si l'utilisateur a accès à un dashboard
         if (!$user->has_dashboard) {
-            return redirect()->route('welcome')->with('error', 'Vous n\'avez pas accès au dashboard.');
+            return redirect()->route('home')->with('error', 'Vous n\'avez pas accès au dashboard.');
         }
         
         switch ($user->role) {
@@ -31,8 +31,12 @@ class DashboardController extends Controller
                 return $this->managerDashboard();
             case 'client':
                 return $this->clientDashboard();
+            case 'donor':
+                return view('dashboard.donor');
+            case 'patient':
+                return view('dashboard.patient');
             default:
-                return redirect()->route('login');
+                return redirect()->route('home')->with('error', "Votre rôle n'est pas reconnu ou n'a pas de dashboard associé.");
         }
     }
 
@@ -41,12 +45,12 @@ class DashboardController extends Controller
         $user = Auth::user();
         // Statistiques générales
         $stats = [
-            'total_donors' => User::donors()->where('center_id', $user->center_id)->count(),
-            'total_blood_bags' => BloodBag::available()->where('center_id', $user->center_id)->count(),
-            'total_donations_this_month' => DonationHistory::thisMonth()->whereHas('donor', function($q) use ($user) { $q->where('center_id', $user->center_id); })->count(),
-            'total_transfusions_this_month' => Transfusion::thisMonth()->whereHas('bloodBag', function($q) use ($user) { $q->where('center_id', $user->center_id); })->count(),
-            'upcoming_campaigns' => Campaign::upcoming()->where('center_id', $user->center_id)->count(),
-            'pending_appointments' => Appointment::pending()->where('center_id', $user->center_id)->count(),
+            'total_donors' => $user->center_id ? User::donors()->where('center_id', $user->center_id)->count() : User::donors()->count(),
+            'total_blood_bags' => $user->center_id ? BloodBag::available()->where('center_id', $user->center_id)->count() : BloodBag::available()->count(),
+            'total_donations_this_month' => $user->center_id ? DonationHistory::thisMonth()->whereHas('donor', function($q) use ($user) { $q->where('center_id', $user->center_id); })->count() : DonationHistory::thisMonth()->count(),
+            'total_transfusions_this_month' => $user->center_id ? Transfusion::thisMonth()->whereHas('bloodBag', function($q) use ($user) { $q->where('center_id', $user->center_id); })->count() : Transfusion::thisMonth()->count(),
+            'upcoming_campaigns' => $user->center_id ? Campaign::upcoming()->where('center_id', $user->center_id)->count() : Campaign::upcoming()->count(),
+            'pending_appointments' => $user->center_id ? Appointment::pending()->where('center_id', $user->center_id)->count() : Appointment::pending()->count(),
         ];
 
         // Alertes critiques
@@ -116,7 +120,9 @@ class DashboardController extends Controller
 
         // Stock par groupe sanguin
         $stockByBloodType = BloodBag::available()
-            ->where('center_id', $user->center_id)
+            ->when($user->center_id, function($query) use ($user) {
+                $query->where('center_id', $user->center_id);
+            })
             ->join('blood_types', 'blood_bags.blood_type_id', '=', 'blood_types.id')
             ->selectRaw('blood_types.group, COUNT(*) as count')
             ->groupBy('blood_types.group')

@@ -1,7 +1,12 @@
 @extends('layouts.public')
 @section('title', 'Accueil')
 @section('content')
-    <!-- Gros Carrousel sous la navbar -->
+    <!-- Boutons d'accès rapide -->
+    <div class="w-full flex flex-col md:flex-row gap-4 justify-center items-center my-8">
+        <a href="{{ route('appointment.public.form') }}" class="px-6 py-3 bg-red-600 text-white font-bold rounded-lg shadow hover:bg-red-700 transition">Prendre rendez-vous</a>
+        <a href="{{ route('campaigns.public') }}" class="px-6 py-3 bg-gray-100 text-red-700 font-bold rounded-lg shadow hover:bg-red-100 border border-red-200 transition">Campagnes à venir</a>
+    </div>
+
     <div class="relative w-full h-96 overflow-hidden">
         <div class="absolute inset-0 z-0">
             <div class="w-full h-full carousel" id="mainCarousel">
@@ -34,6 +39,9 @@
                 <label for="center_id" class="block text-gray-700 font-medium mb-1">Centre</label>
                 <select name="center_id" id="center_id" class="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500">
                     <option value="">Tous les centres</option>
+                    @foreach($centers ?? [] as $center)
+                        <option value="{{ $center->id }}" {{ request('center_id') == $center->id ? 'selected' : '' }}>{{ $center->name }}</option>
+                    @endforeach
                 </select>
             </div>
             <div class="mb-4">
@@ -490,7 +498,7 @@
                             <p class="text-white">Venez nombreux à notre centre pour la grande collecte mensuelle.</p>
                         </div>
                     </div>
-                    <img src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd21?auto=format&fit=crop&w=800&q=80" class="object-cover w-full h-60" alt="Actualité">
+                    <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80" class="object-cover w-full h-60" alt="Actualité">
                 </div>
                 <div class="relative h-60 rounded-lg overflow-hidden shadow">
                     <div class="absolute inset-0 flex items-center justify-center bg-black/40 z-10">

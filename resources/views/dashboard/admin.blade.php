@@ -4,9 +4,12 @@
 
 @section('content')
     <!-- Bouton Gérer les utilisateurs -->
-    <div class="mb-8 flex justify-end">
+    <div class="mb-8 flex justify-end space-x-4">
         <a href="{{ route('users.index') }}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-6 rounded-lg shadow inline-flex items-center">
             <i class="fas fa-users mr-2"></i> Gérer les utilisateurs
+        </a>
+        <a href="{{ route('regions.index') }}" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg shadow inline-flex items-center">
+            <i class="fas fa-map-marker-alt mr-2"></i> Ajouter une région
         </a>
     </div>
     <!-- Statistiques principales -->
@@ -64,7 +67,10 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         <!-- Stock par groupe sanguin -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Stock par Groupe Sanguin</h3>
+            <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center justify-between">
+                Stock par Groupe Sanguin
+                <a href="{{ route('blood-bags.stock') }}" class="text-blue-600 text-sm hover:underline">Voir tout le stock</a>
+            </h3>
             <div class="grid grid-cols-2 gap-3">
                 @foreach(['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'] as $type)
                     @php
@@ -91,7 +97,10 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         <!-- Prochaines campagnes -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Prochaines Campagnes</h3>
+            <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center justify-between">
+                Prochaines Campagnes
+                <a href="{{ route('campaigns.index') }}" class="text-blue-600 text-sm hover:underline">Voir toutes</a>
+            </h3>
             @if($upcomingCampaigns->count() > 0)
                 <div class="space-y-4">
                     @foreach($upcomingCampaigns as $campaign)
@@ -103,7 +112,7 @@
                                         <i class="fas fa-map-marker-alt mr-1"></i>{{ $campaign->location }}
                                     </p>
                                     <p class="text-sm text-gray-500 mt-1">
-                                        <i class="fas fa-calendar mr-1"></i>{{ optional($campaign->campaign_date)->format('d/m/Y') }}
+                                        <i class="fas fa-calendar mr-1"></i>{{ optional($campaign->date)->format('d/m/Y') }}
                                     </p>
                                 </div>
                                 <x-status-badge :status="$campaign->status" type="campaign" />
@@ -118,7 +127,10 @@
 
         <!-- Rendez-vous récents -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Rendez-vous Récents</h3>
+            <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center justify-between">
+                Rendez-vous Récents
+                <a href="{{ route('appointments.admin.index') }}" class="text-blue-600 text-sm hover:underline">Voir tous</a>
+            </h3>
             @if($recentAppointments->count() > 0)
                 <div class="space-y-4">
                     @foreach($recentAppointments->take(5) as $appointment)

@@ -7,7 +7,110 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
-## About Laravel
+# Gestionnaire de Don du Sang
+
+Ce projet est une application Laravel pour la gestion des dons de sang, des poches, des campagnes, des donneurs, des stocks par centre et du suivi des activités médicales.
+
+## Prérequis
+
+- PHP 8.1+
+- Composer
+- Node.js et npm
+- Une base de données MySQL ou compatible
+
+## Installation
+
+1. **Cloner le dépôt**
+   ```bash
+   git clone <url-du-repo>
+   cd HOME
+   ```
+
+2. **Installer les dépendances PHP**
+   ```bash
+   composer install
+   ```
+
+3. **Installer les dépendances front-end**
+   ```bash
+   npm install
+   ```
+
+4. **Copier le fichier d'environnement**
+   ```bash
+   cp .env.example .env
+   ```
+
+5. **Générer la clé d'application**
+   ```bash
+   php artisan key:generate
+   ```
+
+6. **Configurer la base de données**
+   - Ouvre `.env` et renseigne les variables `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` selon ta configuration locale.
+
+## Migrations et Seeders
+
+1. **Lancer les migrations**
+   ```bash
+   php artisan migrate
+   ```
+
+2. **Remplir les tables de base (types sanguins et centres)**
+   ```bash
+   php artisan db:seed --class=BloodTypeSeeder
+   php artisan db:seed --class=CenterSeeder
+   ```
+
+## Lancement de l'application
+
+Ouvre **deux terminaux** :
+
+1. **Serveur Laravel**
+   ```bash
+   php artisan serve
+   ```
+   Par défaut sur http://127.0.0.1:8000
+
+2. **Serveur front-end (Vite)**
+   ```bash
+   npm run dev
+   ```
+
+## Structure principale du projet
+
+- `app/Http/Controllers/` : Contrôleurs Laravel (logique métier)
+- `resources/views/` : Vues Blade (interfaces)
+- `routes/web.php` : Routes principales
+- `database/seeders/` : Seeders pour la base
+- `app/Models/` : Modèles Eloquent
+
+## Accès et rôles
+- **Admin** : gestion globale, accès à tous les centres
+- **Manager** : gestion restreinte à son centre
+- **Donneur** : accès à ses propres rendez-vous
+
+## Commandes utiles
+
+- Rafraîchir la base (attention, supprime les données !) :
+  ```bash
+  php artisan migrate:fresh --seed
+  ```
+- Générer un utilisateur admin :
+  ```bash
+  php artisan tinker
+  // Puis crée un utilisateur avec rôle 'admin'
+  ```
+
+## Liens utiles
+- [Documentation Laravel](https://laravel.com/docs)
+- [Documentation Blade](https://laravel.com/docs/blade)
+- [Documentation Eloquent](https://laravel.com/docs/eloquent)
+
+---
+
+Pour toute question ou bug, contacte l'équipe projet ou consulte la documentation officielle Laravel.
+
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
 

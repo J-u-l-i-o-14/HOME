@@ -3,6 +3,26 @@
 @section('title', 'Dashboard Manager')
 
 @section('content')
+@php
+    $unreadNotifications = auth()->user()->notifications()->unread()->latest()->take(5)->get();
+@endphp
+@if($unreadNotifications->count() > 0)
+    <div class="mb-6">
+        <h3 class="font-bold text-lg mb-2">Notifications récentes</h3>
+        <ul class="bg-white rounded shadow divide-y">
+            @foreach($unreadNotifications as $notif)
+                <li class="p-4 flex justify-between items-center">
+                    <span>{{ $notif->message }}</span>
+                    <form method="POST" action="{{ route('notifications.read', $notif) }}">
+                        @csrf
+                        <button class="btn btn-xs btn-success">Marquer comme lu</button>
+                    </form>
+                </li>
+            @endforeach
+        </ul>
+    </div>
+@endif
+
 <div class="py-12">
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
         <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
@@ -74,7 +94,7 @@
         </div>
     @endif
 <!-- Actions rapides -->
-<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-4 ">
         <a href="{{ route('users.create') }}" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-4 rounded-lg text-center transition-colors duration-200">
             <i class="fas fa-user-plus mr-2"></i>Ajouter Donneur
         </a>
@@ -88,7 +108,7 @@
             <i class="fas fa-chart-bar mr-2"></i>Voir Stock
         </a>
     </div>
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-6">
                     <!-- Stock par groupe sanguin -->
                     <div class="bg-white border rounded-lg p-6">
                         <h3 class="text-lg font-semibold mb-4">Stock par groupe sanguin</h3>

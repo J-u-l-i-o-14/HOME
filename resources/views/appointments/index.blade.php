@@ -78,7 +78,7 @@
             <div class="table-responsive">
                 <table class="table table-hover">
                     <thead>
-                        <tr>
+                        <tr @if(!auth()->user()->is_donor && $appointment->status === 'planifie') style="background-color:#fffbe6" @endif>
                             @if(!auth()->user()->is_donor)
                                 <th>Donneur</th>
                             @endif
@@ -91,7 +91,7 @@
                     </thead>
                     <tbody>
                         @foreach($appointments as $appointment)
-                        <tr>
+                        <tr @if(!auth()->user()->is_donor && $appointment->status === 'planifie') style="background-color:#fffbe6" @endif>
                             @if(!auth()->user()->is_donor)
                                 <td>
                                     <div>
@@ -151,6 +151,9 @@
                                 @endphp
                                 <span class="badge bg-{{ $statusColors[$appointment->status] ?? 'secondary' }}">
                                     {{ ucfirst($appointment->status) }}
+                                    @if(!auth()->user()->is_donor && $appointment->status === 'planifie')
+                                        <span class="badge bg-warning ms-1">À valider</span>
+                                    @endif
                                 </span>
                                 @if($appointment->confirmed_at)
                                     <br>
@@ -175,22 +178,43 @@
                                         <form method="POST" action="{{ route('appointments.confirm', $appointment) }}" class="d-inline">
                                             @csrf
                                             @method('PATCH')
-                                            <button type="submit" class="btn btn-outline-success" title="Confirmer">
-                                                <i class="fas fa-check"></i>
+                                            <button type="submit" class="btn btn-success" title="Confirmer le rendez-vous">
+                                                <i class="fas fa-check me-1"></i> Confirmer
                                             </button>
                                         </form>
                                     @endif
                                     
                                     @if(in_array($appointment->status, ['planifie', 'confirme']))
-                                        <form method="POST" action="{{ route('appointments.cancel', $appointment) }}" class="d-inline">
-                                            @csrf
-                                            @method('PATCH')
-                                            <button type="submit" class="btn btn-outline-danger" title="Annuler" 
-                                                    onclick="return confirm('Êtes-vous sûr de vouloir annuler ce rendez-vous ?')">
-                                                <i class="fas fa-times"></i>
-                                            </button>
-                                        </form>
-                                    @endif
+    <!-- Bouton pour ouvrir la modale d’annulation -->
+    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#cancelModal-{{ $appointment->id }}">
+        <i class="fas fa-times me-1"></i> Annuler
+    </button>
+    <!-- Modale d’annulation -->
+    <div class="modal fade" id="cancelModal-{{ $appointment->id }}" tabindex="-1" aria-labelledby="cancelModalLabel-{{ $appointment->id }}" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="POST" action="{{ route('appointments.cancel', $appointment) }}">
+                    @csrf
+                    @method('PATCH')
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="cancelModalLabel-{{ $appointment->id }}">Annuler le rendez-vous</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="cancel-reason-{{ $appointment->id }}" class="form-label">Raison de l'annulation <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="cancel-reason-{{ $appointment->id }}" name="cancel_reason" rows="3" required placeholder="Veuillez indiquer la raison de l'annulation..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                        <button type="submit" class="btn btn-danger">Confirmer l'annulation</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+@endif
                                 </div>
                             </td>
                         </tr>

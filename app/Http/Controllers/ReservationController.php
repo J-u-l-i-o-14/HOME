@@ -75,6 +75,18 @@ class ReservationController extends Controller
                 'quantity' => $item['quantity'],
             ]);
         }
+        // Notifier les managers du centre
+        $managers = \App\Models\User::where('role', 'manager')
+            ->where('center_id', $reservation->center_id)
+            ->get();
+        foreach ($managers as $manager) {
+            \App\Models\Notification::create([
+                'user_id' => $manager->id,
+                'type' => 'reservation',
+                'message' => 'Nouvelle demande de réservation créée par ' . $user->name . '.',
+                'read' => false,
+            ]);
+        }
         return redirect()->route('reservations.show', $reservation)
             ->with('success', 'Demande de réservation créée avec succès.');
     }

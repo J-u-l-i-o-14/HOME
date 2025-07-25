@@ -11,9 +11,15 @@ use App\Http\Controllers\TransfusionController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ContactController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\StockThresholdController;
 
-// Page d'accueil = recherche sang
-Route::get('/', [\App\Http\Controllers\SearchBloodController::class, 'search'])->name('home');
+// Page d'accueil
+Route::get('/', function () {
+    return view('welcome');
+})->name('home');
+
+Route::get('/prendre-rendez-vous', [\App\Http\Controllers\AppointmentController::class, 'publicForm'])->name('appointment.public.form');
+Route::post('/prendre-rendez-vous', [\App\Http\Controllers\AppointmentController::class, 'publicStore'])->name('appointment.public.store');
 
 // Dashboard principal avec redirection selon le rôle
 Route::get('/dashboard', [DashboardController::class, 'index'])
@@ -39,15 +45,20 @@ Route::middleware(['auth', 'role:patient'])->group(function () {
 
 // Routes pour les managers (avec dashboard)
 Route::middleware(['auth', 'role:manager'])->group(function () {
-    Route::resource('campaigns', CampaignController::class);
+    // Route::resource('campaigns', CampaignController::class); // doublon supprimé
+    Route::post('campaigns/{campaign}/publish', [CampaignController::class, 'publish'])->name('campaigns.publish');
+    Route::post('campaigns/{campaign}/archive', [CampaignController::class, 'archive'])->name('campaigns.archive');
     Route::resource('appointments', AppointmentController::class);
     Route::patch('/appointments/{appointment}/confirm', [AppointmentController::class, 'confirm'])->name('appointments.confirm');
     Route::get('/blood-bags/stock', [BloodBagController::class, 'stock'])->name('blood-bags.stock');
 });
 
+// CRUD Donors
+Route::resource('donors', App\Http\Controllers\DonorController::class);
+
 // Routes pour les clients (avec dashboard)
 Route::middleware(['auth', 'role:client'])->group(function () {
-    Route::get('/campaigns/public', [CampaignController::class, 'upcoming'])->name('campaigns.public');
+    Route::get('/campaigns/public', [CampaignController::class, 'upcomingPublic'])->name('campaigns.public');
     Route::get('/blood-bags/available', [BloodBagController::class, 'available'])->name('blood-bags.available');
 });
 
@@ -56,6 +67,8 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::resource('users', UserController::class);
     Route::resource('blood-bags', BloodBagController::class);
     Route::resource('campaigns', CampaignController::class);
+    Route::post('campaigns/{campaign}/publish', [CampaignController::class, 'publish'])->name('campaigns.publish');
+    Route::post('campaigns/{campaign}/archive', [CampaignController::class, 'archive'])->name('campaigns.archive');
     Route::resource('donations', DonationController::class);
     Route::resource('patients', PatientController::class);
     Route::resource('transfusions', TransfusionController::class);
@@ -64,15 +77,15 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/appointments', [AppointmentController::class, 'index'])->name('appointments.admin.index');
     Route::patch('/appointments/{appointment}/confirm', [AppointmentController::class, 'confirm'])->name('appointments.confirm');
     // Campagnes à venir (public pour les donneurs)
-    Route::get('/campaigns/upcoming', [CampaignController::class, 'upcoming'])->name('campaigns.upcoming');
+
 });
 
 // Routes publiques pour les campagnes (visible par tous les utilisateurs connectés)
 Route::middleware('auth')->group(function () {
-    Route::get('/campaigns/public', [CampaignController::class, 'upcoming'])->name('campaigns.public');
+    Route::get('/campaigns/public', [CampaignController::class, 'upcomingPublic'])->name('campaigns.public');
 });
 
-Route::get('/prendre-rendez-vous', [AppointmentController::class, 'publicForm'])->name('appointment.public');
+
 Route::post('/prendre-rendez-vous', [AppointmentController::class, 'publicStore'])->name('appointment.public.store');
 
 Route::post('/contact', [ContactController::class, 'send'])->name('contact.send');
@@ -92,6 +105,28 @@ Route::post('/api/recherche-sang', [\App\Http\Controllers\SearchBloodController:
 
 // API: centres par région
 Route::get('/api/centers-by-region/{region}', [\App\Http\Controllers\SearchBloodController::class, 'centersByRegion']);
+
+// Patients, donneurs, transfusions
+Route::middleware(['auth', 'role:admin,manager'])->group(function () {
+    Route::resource('donors', \App\Http\Controllers\DonationController::class);
+    Route::get('/regions', [\App\Http\Controllers\RegionController::class, 'index'])->name('regions.index');
+    Route::get('/regions/create', [\App\Http\Controllers\RegionController::class, 'create'])->name('regions.create');
+    Route::post('/regions', [\App\Http\Controllers\RegionController::class, 'store'])->name('regions.store');
+
+// Patients et transfusions
+    Route::resource('patients', \App\Http\Controllers\PatientController::class);
+    Route::resource('transfusions', \App\Http\Controllers\TransfusionController::class);
+
+// Export financier
+    Route::get('/payments/export/csv', [\App\Http\Controllers\PaymentExportController::class, 'exportCsv'])->name('payments.export.csv');
+    Route::get('/payments/export/xlsx', [\App\Http\Controllers\PaymentExportController::class, 'exportXlsx'])->name('payments.export.xlsx');
+});
+
+// Marquer une notification comme lue
+Route::post('/notifications/{notification}/read', function (\App\Models\Notification $notification) {
+    $notification->update(['read' => true]);
+    return back();
+})->name('notifications.read')->middleware('auth');
 
 // Route de test temporaire pour vérifier les rôles
 Route::get('/test-roles', function () {

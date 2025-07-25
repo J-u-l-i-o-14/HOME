@@ -72,13 +72,16 @@
                             </a>
                         </li>
 
-                        @if(auth()->user()->is_donor)
+                        @if(auth()->check() && in_array(auth()->user()->role, ['manager','admin','donor','donneur']) && \Route::has('appointments.index'))
                             <li class="nav-item">
                                 <a class="nav-link {{ request()->routeIs('appointments.*') ? 'active' : '' }}" href="{{ route('appointments.index') }}">
                                     <i class="fas fa-calendar-alt me-2"></i>
                                     Mes Rendez-vous
                                 </a>
                             </li>
+                        @endif
+
+                        @if(auth()->user()->is_donor)
                             <li class="nav-item">
                                 <a class="nav-link {{ request()->routeIs('campaigns.public') ? 'active' : '' }}" href="{{ route('campaigns.public') }}">
                                     <i class="fas fa-bullhorn me-2"></i>

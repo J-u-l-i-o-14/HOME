@@ -44,8 +44,9 @@ class TransfusionController extends Controller
         $transfusions = $query->latest()->paginate(15);
         $patients = Patient::all();
         $centers = Center::all();
+        $bloodBags = BloodBag::available()->with(['bloodType', 'center'])->get();
 
-        return view('transfusions.index', compact('transfusions', 'patients', 'centers'));
+        return view('transfusions.index', compact('transfusions', 'patients', 'centers', 'bloodBags'));
     }
 
     public function create()

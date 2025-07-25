@@ -30,7 +30,6 @@ class SearchBloodController extends Controller
             ]);
 
         if ($searchBloodTypes->count() > 0) {
-            // On récupère tous les centres (filtrés par région si besoin)
             $centersQuery = Center::with(['region']);
             if ($request->filled('region_id')) {
                 $centersQuery->where('region_id', $request->region_id);
@@ -39,25 +38,25 @@ class SearchBloodController extends Controller
                 $centersQuery->where('id', $request->center_id);
             }
             $centers = $centersQuery->get();
-
-            // Pour chaque centre, vérifier s'il a assez de stock pour chaque type demandé
             $matchingCenters = [];
-            foreach ($centers as $center) {
-                $matchingStocks = collect();
-                $ok = true;
-                foreach ($searchBloodTypes as $search) {
+            foreach ($searchBloodTypes as $search) {
+                foreach ($centers as $center) {
                     $stock = CenterBloodTypeInventory::where('center_id', $center->id)
                         ->where('blood_type_id', $search['blood_type_id'])
                         ->first();
-                    if (!$stock || $stock->available_quantity < $search['quantity']) {
-                        $ok = false;
-                        break;
+                    if ($stock && $stock->available_quantity > 0) {
+                        $canProvide = min($stock->available_quantity, $search['quantity']);
+                        $matchingCenters[] = [
+                            'id' => $center->id,
+                            'name' => $center->name,
+                            'region' => $center->region->name ?? '',
+                            'address' => $center->address,
+                            'phone' => $center->phone ?? '',
+                            'blood_type' => $stock->bloodType->group,
+                            'requested_quantity' => $search['quantity'],
+                            'can_provide' => $canProvide,
+                        ];
                     }
-                    $matchingStocks->push($stock);
-                }
-                if ($ok && $matchingStocks->count()) {
-                    $center->matchingStocks = $matchingStocks;
-                    $matchingCenters[] = $center;
                 }
             }
             $results = collect($matchingCenters);

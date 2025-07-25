@@ -70,7 +70,11 @@
                                 <p class="px-4 text-xs font-semibold text-white opacity-60 uppercase tracking-wider">Donneur</p>
                             </li>
                             <li>
-                                <a href="{{ route('appointments.index') }}" 
+                                @if(auth()->check() && in_array(auth()->user()->role, ['manager','admin','donor','donneur']))
+@if(auth()->check() && in_array(auth()->user()->role, ['manager','admin','donor','donneur']))
+<a href="{{ route('appointments.index') }}" 
+@endif
+@endif
                                    class="flex items-center px-4 py-3 text-white rounded-lg transition-colors duration-200 {{ request()->routeIs('appointments.*') ? 'bg-white bg-opacity-20' : 'hover:bg-white hover:bg-opacity-10' }}">
                                     <i class="fas fa-calendar-alt mr-3"></i>
                                     <span>Mes Rendez-vous</span>

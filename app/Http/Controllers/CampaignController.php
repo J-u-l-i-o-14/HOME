@@ -11,10 +11,10 @@ class CampaignController extends Controller
     public function index(Request $request)
     {
         $user = auth()->user();
-        $query = Campaign::with(['center']);
+        $query = Campaign::with(['center', 'organizer']);
 
         // Filtrer par centre pour admin/manager
-        if (in_array($user->role, ['admin', 'manager'])) {
+        if (in_array($user->role, ['admin', 'manager']) && $user->center_id) {
             $query->where('center_id', $user->center_id);
         }
 
@@ -40,7 +40,8 @@ class CampaignController extends Controller
     public function create()
     {
         $centers = Center::all();
-        return view('campaigns.create', compact('centers'));
+        $organizers = \App\Models\User::whereIn('role', ['admin', 'manager'])->get();
+        return view('campaigns.create', compact('centers', 'organizers'));
     }
 
     public function store(Request $request)
@@ -52,9 +53,11 @@ class CampaignController extends Controller
             'location' => 'required|string|max:255',
             'date' => 'required|date|after:now',
             'end_date' => 'nullable|date|after:date',
+            'center_id' => 'required|exists:centers,id',
         ]);
         $data = $request->all();
-        if (in_array($user->role, ['admin', 'manager'])) {
+        // Si le user a un center_id par défaut et rien n'est envoyé, fallback
+        if (empty($data['center_id']) && in_array($user->role, ['admin', 'manager'])) {
             $data['center_id'] = $user->center_id;
         }
         Campaign::create($data);
@@ -108,14 +111,23 @@ class CampaignController extends Controller
             ->with('success', 'Campagne supprimée avec succès.');
     }
 
-    public function upcoming()
+    /**
+     * Affiche les campagnes à venir (publiques, statut published, date future)
+     */
+    public function upcomingPublic()
     {
-        $user = auth()->user();
-        $query = Campaign::upcoming()->with('center');
-        if (in_array($user->role, ['admin', 'manager'])) {
-            $query->where('center_id', $user->center_id);
-        }
-        $campaigns = $query->paginate(10);
+        $now = now();
+        $campaigns = \App\Models\Campaign::where('status', 'published')
+            ->where('date', '>=', $now)
+            ->orderBy('date')
+            ->with('center')
+            ->paginate(12);
         return view('campaigns.upcoming', compact('campaigns'));
+    }
+
+    public function archive(Campaign $campaign)
+    {
+        $campaign->archive();
+        return redirect()->route('campaigns.index')->with('success', 'Campagne archivée avec succès.');
     }
 }

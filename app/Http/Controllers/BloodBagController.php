@@ -18,7 +18,7 @@ class BloodBagController extends Controller
         $query = BloodBag::with(['bloodType', 'center', 'donor']);
 
         // Filtrer par centre pour admin/manager
-        if (in_array($user->role, ['admin', 'manager'])) {
+        if (in_array($user->role, ['admin', 'manager']) && $user->center_id) {
             $query->where('center_id', $user->center_id);
         }
 
@@ -49,8 +49,14 @@ class BloodBagController extends Controller
     {
         $bloodTypes = BloodType::all();
         $centers = Center::all();
-        $donors = Donor::all();
-
+        $user = auth()->user();
+        if (request()->has('center_id') && request()->center_id) {
+            $donors = Donor::where('center_id', request()->center_id)->get();
+        } elseif (in_array($user->role, ['admin', 'manager']) && $user->center_id) {
+            $donors = Donor::where('center_id', $user->center_id)->get();
+        } else {
+            $donors = Donor::all();
+        }
         return view('blood-bags.create', compact('bloodTypes', 'centers', 'donors'));
     }
 
@@ -63,12 +69,14 @@ class BloodBagController extends Controller
             'donor_name' => 'nullable|string|max:255',
             'volume' => 'required|numeric|min:100|max:500',
             'collected_at' => 'required|date',
+            'center_id' => 'required|exists:centers,id',
         ]);
         // Exiger un donneur (sélection ou nom)
         if (empty($request->donor_id) && empty($request->donor_name)) {
             return back()->withErrors(['donor_id' => 'Vous devez sélectionner un donneur ou saisir un nom.'])->withInput();
         }
-        $centerId = $user->center_id;
+        // Déterminer le center_id transmis (priorité au formulaire, sinon user)
+        $centerId = $request->input('center_id', $user->center_id);
         // Si aucun donneur sélectionné mais nom fourni, créer un donneur minimal
         $donorId = $request->donor_id;
         if (!$donorId && $request->donor_name) {
@@ -156,7 +164,7 @@ class BloodBagController extends Controller
     public function stock()
     {
         $user = auth()->user();
-        if (in_array($user->role, ['admin', 'manager'])) {
+        if ($user->role === 'manager' && $user->center_id) {
             $stockByCenter = Center::with(['inventory.bloodType'])
                 ->where('id', $user->center_id)
                 ->get();
@@ -165,7 +173,8 @@ class BloodBagController extends Controller
                 ->latest()
                 ->get();
         } else {
-            $stockByCenter = Center::with(['inventory.bloodType'])->get();
+            // Pour les admins (ou managers sans center_id), afficher tous les centres
+            $stockByCenter = Center::with(['inventory.bloodType', 'region'])->get();
             $alerts = \App\Models\Alert::where('resolved', false)->latest()->get();
         }
         $expiredBags = BloodBag::expired()
